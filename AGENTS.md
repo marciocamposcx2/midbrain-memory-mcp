@@ -642,6 +642,45 @@ only, and only once OpenClaw created it). Prime Agent uses
 - Add comments only for non-obvious decisions.
 - Do not add production dependencies without explicit approval.
 
+### Design Guardrails
+
+Lessons from review. Check each one before opening a PR.
+
+- **Fail closed on incomplete evidence.** A check that prevents duplicates or
+  data loss must stop, or skip the unit, when it cannot prove its answer is
+  complete: exhaust pagination or throw at the page cap, and reject unexpected
+  response shapes instead of treating them as empty.
+- **Never retry a write that is not idempotent.** A failed or dropped POST may
+  still have been stored. Unless the server enforces idempotency, make one
+  attempt, stop on any ambiguous failure, and let a later run reconcile from
+  what the server holds. Never nest two retry budgets for one operation.
+- **Route by the most specific data you have.** When each record carries its
+  own context (an entry's `cwd`), resolve the key, host and duplicate check
+  from that record, not from the first value in its session. The destination
+  and the metadata must never disagree.
+- **Prefer a maintained library for security-sensitive detection** (secret
+  scanning, parsing, crypto). Before writing your own, compare candidates on
+  coverage, false positives, Node and Bun support and dependency size against
+  real fixtures, and put the comparison in the PR. New production dependencies
+  still need approval.
+- **Test pattern matching against real input shapes:** JSON with quoted keys,
+  YAML, `.env` files, curl commands, plus harmless lookalikes that must stay
+  unchanged.
+- **Do not duplicate what the server already does.** Check whether the API
+  already truncates, deduplicates or rate-limits before adding a client-side
+  threshold; keep one source of truth.
+- **Choose the simplest mechanism that fits the platform.** Every added
+  mechanism (markers, signatures, scrubbing and re-injecting) must answer, in
+  the PR, what breaks without it. Example: add identity to the system prompt
+  once; rewriting it mid-session invalidates the model's KV cache.
+- **Design bulk operations with the server.** Do not use a per-event endpoint
+  as a bulk loader: thousands of single writes trip the edge firewall. Ask for
+  a bulk endpoint, or throttle and stop on the first block. An HTML 403 from
+  the load balancer means "blocked", not "rate limited".
+- **Check behavior-changing fixes against real data before pushing.** Compare
+  the new output with what an earlier version produced or stored, and turn
+  every difference into a regression fixture.
+
 Commands:
 
 | Command | Purpose |

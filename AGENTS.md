@@ -677,6 +677,14 @@ Lessons from review. Check each one before opening a PR.
   as a bulk loader: thousands of single writes trip the edge firewall. Ask for
   a bulk endpoint, or throttle and stop on the first block. An HTML 403 from
   the load balancer means "blocked", not "rate limited".
+- **Call only current API endpoints.** Before adding or changing a call to
+  the MidBrain API, look the route up in the server's spec
+  (`https://memory.midbrain.ai/api/docs/openapi.json`; the root
+  `/openapi.json` is the LLM proxy's) and use the current version. A route
+  marked `deprecated` (all v1 and v2 routes as of 2026-10) gets no new
+  callers. When a change touches code that already calls a deprecated route,
+  say so in the PR and propose the migration as its own change, covering
+  every caller (live capture shares methods with the importer).
 - **Check behavior-changing fixes against real data before pushing.** Compare
   the new output with what an earlier version produced or stored, and turn
   every difference into a regression fixture.
